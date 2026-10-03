@@ -391,7 +391,8 @@ test('between commitments any defect is fixed and wake names it before promote; 
   assert.deepEqual([v.action, v.target], ['fix', 'elsewhere'], JSON.stringify(v));
   await fix(repo.cwd, 'elsewhere');
   const after = await wake(repo.cwd);
-  assert.match(after.reason, /DEMO-002 has no current pass at or after the fix/, JSON.stringify(after));   // the fix is recorded; the pass is next
+  // The fix is recorded; the check is the step left, and wake names it (issue #64).
+  assert.deepEqual([after.action, after.target, after.reason], ['run', 'DEMO-002', 'the fix of elsewhere is recorded and no current receipt carries a result for DEMO-002'], JSON.stringify(after));
 });
 // Issue #4 (johnwlockwood, 3.0.0): a fix recorded between commitments was judged against the newest
 // start, so the next commitment's own contract changes (a new spec file, an edited overview) revoked
@@ -412,7 +413,7 @@ test('a fix recorded between commitments survives the next commitment\'s contrac
   await done(repo.cwd, 'second', { unchecked: true });
   const v = await wake(repo.cwd);
   // The fix stands; what wake names next is the pass DEMO-001 still lacks, never the revocation.
-  assert.deepEqual([v.action, v.target, v.reason], ['fix', 'gate', 'DEMO-001 has no current pass at or after the fix'], JSON.stringify(v));
+  assert.deepEqual([v.action, v.target, v.reason], ['run', 'DEMO-001', 'the fix of gate is recorded and no current receipt carries a result for DEMO-001'], JSON.stringify(v));
   await item(repo.cwd, { kind: 'defect', slug: 'later', source: 'DEMO-002', body: 'y' });
   await assert.doesNotReject(fix(repo.cwd, 'later'));
   assert.notEqual((await wake(repo.cwd)).reason, 'the fix snapshot changes a protected path');

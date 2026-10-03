@@ -417,7 +417,8 @@ test('an unfixed defect against a set requirement is named before dirty inputs',
   assert.deepEqual([v.action, v.target], ['fix', 'wrong-greeting']);
   await r.commit('fix greeting');
   await r.add('fix', 'wrong-greeting', { item, snapshot: await r.snap() });
-  assert.equal((await wake(r.cwd)).action, 'fix');           // no current pass at or after the fix yet
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['run', 'DEMO-001'], JSON.stringify(v));   // the fix is recorded; the check is next (issue #64)
   await r.passReq('DEMO-001');
   assert.notEqual((await wake(r.cwd)).action, 'fix');
 });
@@ -948,11 +949,58 @@ test('a defect against a requirement outside the last commitment\'s set is disch
   await authorize(r.cwd, { quote: 'ok', env: {} });
   await start(r.cwd, 'second');
   await done(r.cwd, 'second', { unchecked: true });
-  assert.match((await wake(r.cwd)).reason, /DEMO-001 has no current pass at or after the fix/);
+  assert.match((await wake(r.cwd)).reason, /the fix of gate is recorded and no current receipt carries a result for DEMO-001/);
   await check(r.cwd, 'DEMO-001');
   const v = await wake(r.cwd);
-  assert.notEqual(v.reason, 'DEMO-001 has no current pass at or after the fix', JSON.stringify(v));
+  assert.notEqual(v.reason, 'the fix of gate is recorded and no current receipt carries a result for DEMO-001', JSON.stringify(v));
   assert.notEqual(v.target, 'gate', JSON.stringify(v));
+});
+// Issue #64 (eas4ai, 4.2.13): a defect whose fix was recorded was named `fix` again whenever its
+// requirement's pass went stale, as after any commit to the mechanism's inputs. The manual's fix
+// move then records the fix a second time; the one step left is a check, and wake names it.
+async function fixedBetweenCommitments() {
+  const { done, item, fix } = await import('../lib/commitment.mjs');
+  const { check } = await import('../lib/check.mjs');
+  const r = await loopRepo({ reqs: ['DEMO-001', 'DEMO-002'] });
+  await r.passReq('DEMO-001'); await r.passReq('DEMO-002'); await r.review(); await r.report();
+  await done(r.cwd, 'first');
+  await item(r.cwd, { kind: 'defect', slug: 'gate', source: 'DEMO-001', body: 'x' });
+  await r.write('src/demo.mjs', 'console.log("hey");\n'); await r.commit('fix gate');
+  await check(r.cwd, 'DEMO-001');
+  await fix(r.cwd, 'gate');
+  assert.equal((await wake(r.cwd)).verdict, 'Done');
+  return r;
+}
+test('between commitments a recorded fix whose pass went stale names run REQ, a check alone clears it, and a failing check is fix again (issue #64)', async () => {
+  const { check } = await import('../lib/check.mjs');
+  const r = await fixedBetweenCommitments();
+  await r.write('src/demo.mjs', 'console.log("hey there");\n'); await r.commit('a source change');
+  let v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target, v.reason, v.predicate], ['run', 'DEMO-001', 'the fix of gate is recorded and no current receipt carries a result for DEMO-001', PREDICATES.run], JSON.stringify(v));
+  await check(r.cwd, 'DEMO-001');
+  assert.equal((await wake(r.cwd)).verdict, 'Done');   // no second `sudus fix`
+  // A check that fails says the fix no longer holds: that is the defect, not a check to run.
+  await r.write('flags/DEMO-001', 'fail\n'); await r.commit('the defect returns');
+  await check(r.cwd, 'DEMO-001');
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target, v.reason], ['fix', 'gate', 'DEMO-001 has no current pass at or after the fix'], JSON.stringify(v));
+});
+test('under a commitment that owns the requirement, a stale pass after a recorded fix is the run predicate\'s, which waits on an open finding (issue #64)', async () => {
+  const { authorize } = await import('../lib/auth.mjs');
+  const { check } = await import('../lib/check.mjs');
+  const r = await fixedBetweenCommitments();
+  const roadmap = await readFile(join(r.cwd, 'docs/spec/roadmap.md'), 'utf8');
+  await r.write('docs/spec/roadmap.md', roadmap.replace('Current: first', 'Current: second') + '\n## second\n\nRequirements: DEMO-001 DEMO-002\n\nMore demo.\n'); await r.commit('second');
+  await authorize(r.cwd, { quote: 'ok', env: {} });
+  await start(r.cwd, 'second');
+  await check(r.cwd, 'DEMO-001'); await check(r.cwd, 'DEMO-002');
+  await r.review(); const rep = await r.report([{ n: 1, text: 'a finding' }]);
+  await r.write('src/demo.mjs', 'console.log("hey again");\n'); await r.commit('work on the finding');
+  let v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['resolve', 'second 1'], JSON.stringify(v));   // the checks run once, after the last finding
+  await r.resolveFinding(rep, 1);
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target, v.reason], ['run', 'DEMO-001', 'no current receipt carries a result for DEMO-001'], JSON.stringify(v));
 });
 // Report of 2026-09-23 (a consumer project, 3.0.3): an Agreed requirement's text was revised under
 // the open commitment. Receipts and the mechanism review bound to the revised text, wake's review
