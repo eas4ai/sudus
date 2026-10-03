@@ -1,4 +1,4 @@
 { "name": "sudus", "description": "Sudus, the referee for agent-led software development", "owner": { "name": "eas4ai" },
-  "plugins": [{ "name": "sudus", "source": "./", "version": "4.2.13",
+  "plugins": [{ "name": "sudus", "source": "./", "version": "4.2.14",
     "description": "The referee for agent-led software development: reads the repository, names the next action.",
     "category": "development", "keywords": ["agent", "specification", "requirements", "review", "hooks"] }] }

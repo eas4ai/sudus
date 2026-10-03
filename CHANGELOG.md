@@ -7,6 +7,10 @@ or document meaning; a minor adds or revises requirements, verdicts, or
 record shapes and still reads earlier records; a major changes what
 earlier records mean.
 
+## 4.2.14 - 2026-10-03
+
+- Wake names `run REQ`, not `fix ITEM`, for a defect whose fix is recorded when only the requirement's check went stale (issue #64). Any commit to the requirement's mechanism inputs made its pass stale, and wake named the defect again with "has no current pass at or after the fix". The manual's move for `fix` (a failing test, the fix, a commit, a check, then `sudus fix`) would record the fix a second time, while a check was the only step left. Between commitments wake now names `run REQ` with the reason "the fix of ITEM is recorded and no current receipt carries a result for REQ". While a commitment that owns the requirement is open, wake names the check in its usual place: an uncommitted input comes first, and while the report has an open finding, that finding's resolution comes first. A check that fails still names `fix ITEM`, because the fix no longer holds.
+
 ## 4.2.13 - 2026-10-02
 
 - Under Codex the stop hook no longer shows the wake verdict after every response (issue #63). Since 4.2.11 it sent the whole block (verdict, action, reason, predicate) as Codex's `systemMessage`, which Codex shows to you, while the per-turn hook already gives the agent the verdict. A routine verdict, or a project that is not initialized, now prints nothing at stop. The `systemMessage` carries only what needs you: the version-mismatch or pin line, or a wake that failed with its output. Without `PLUGIN_ROOT` (Claude Code) the stop hook prints as before.

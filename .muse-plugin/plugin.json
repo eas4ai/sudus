@@ -1,4 +1,4 @@
-{ "schemaVersion": 1, "name": "sudus", "displayName": "Sudus", "version": "4.2.13",
+{ "schemaVersion": 1, "name": "sudus", "displayName": "Sudus", "version": "4.2.14",
   "description": "The referee for agent-led software development: reads the repository, names the next action.",
   "compat": { "manifestDir": ".muse-plugin", "source": "native" },
   "capabilities": { "commands": [], "mcpServers": [], "reminders": [],
