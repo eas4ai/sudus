@@ -27,6 +27,21 @@ test('observeIdentity reads only declared names and records absence as null', as
   assert.deepEqual(c, { tools: { missing: null }, env: {}, image: 'img:1' });
 });
 
+// Issue #70: under the Codex sandbox a Node probe such as `npm --version` writing to the socket
+// pair Node's spawn gives it printed nothing, so wake read another identity than check had
+// recorded. A probe writes into a pipe; its exit status still decides, and stderr still counts.
+test('an identity probe writes into a pipe, keeps its exit status, and reads stderr (issue #70)', async () => {
+  const repo = await project();
+  const r = await observeIdentity(repo.cwd, { tools: {
+    stdout: '[ -p /dev/stdout ] && echo pipe || echo socket',
+    stderr: '[ -p /dev/stderr ] && echo pipe >&2 || echo socket >&2',
+    both: 'echo out; echo err >&2',
+    node: `node -e "console.log('v-from-node')"`,
+    fails: 'echo nope; exit 3',
+  }, env: [], image: null });
+  assert.deepEqual(r.tools, { both: 'out\nerr', fails: null, node: 'v-from-node', stderr: 'pipe', stdout: 'pipe' });
+});
+
 test('runCommand captures combined output, exit code and signal', async () => {
   const repo = await project();
   const ok = await runCommand(repo.cwd, 'printf a; printf b >&2; exit 3');
