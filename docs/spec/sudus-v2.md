@@ -1836,9 +1836,11 @@ question; the kernel enforces `request_cap_bytes`, estimates three bytes per
 token, and refuses above 75% of either limit before sending. A request over
 either limit is built once more with the text of only the frozen requirements
 the draft's concerns name; the others keep their identifier and text digest.
-When that request fits, it is sent, and the measurement's reason says so;
-when it does not, the draft is `unavailable oversize`. A request that fits
-is never trimmed. Added 2026-10-13 (revision 20, issue #69, on the
+When that request fits, it is sent, and the measurement's reason says so,
+unless a crash leaves the measurement `indeterminate`, whose reason names the
+crash; the intent's request digest still identifies the request sent. When it
+does not fit, the draft is `unavailable oversize`. A request that fits is
+never trimmed. Added 2026-10-13 (revision 20, issue #69, on the
 developer's ok): previously a request over a limit was refused at once. The
 review
 source's request is the harness's own message; the no-policy-prose and
