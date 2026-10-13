@@ -7,6 +7,12 @@ or document meaning; a minor adds or revises requirements, verdicts, or
 record shapes and still reads earlier records; a major changes what
 earlier records mean.
 
+## 4.4.0 - 2026-10-13
+
+Spec revision 20, on the developer's ok of 2026-10-13. No record shape changes; earlier logs still read, and a request that fits is built as before, so earlier measurements and calibration are unchanged.
+
+- A Consequential decision on a large commitment can be measured (issue #69). The measurement state carries the text of every requirement in the commitment, so a commitment with many requirements filled the request by itself: every `sudus measure` on it was `unavailable oversize`, the agent could cut nothing, and every Consequential decision went to the developer. A request over a size limit is now built once more with the text of only the requirements the draft's concerns name; the others keep their identifier and text digest. When that request fits, it is sent, and the measurement's reason ends with "sent with requirement text for REQ only (the full request: ...)", so `sudus decide --consequential` can follow. When it still does not fit, the draft is `unavailable oversize`, the reason ends with "with requirement text for REQ only", and `sudus escalate --consequential` takes it to the developer as before.
+
 ## 4.3.2 - 2026-10-13
 
 - Wake reads an identity probe the way check recorded it under the Codex sandbox (issue #70). Node gives a child's stdout and stderr as a socket pair, and under the Codex sandbox a Node program writing to that socket through `process.stdout` prints nothing and still exits 0. So a probe such as `npm --version` read as "" in wake, which Codex runs inside the sandbox, and as "11.3.0" in `sudus check`, which writes `.git` and so runs outside it. The identities never matched, and wake named `run REQ` after every passing check. A probe now writes into a pipe that `cat` copies out, and its exit status still decides. A probe's value is unchanged outside the sandbox, so existing receipts stay current. Mechanism commands run as before: `sudus check` cannot run inside the Codex sandbox, which keeps `.git` read-only.
