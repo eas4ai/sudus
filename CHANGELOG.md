@@ -7,6 +7,10 @@ or document meaning; a minor adds or revises requirements, verdicts, or
 record shapes and still reads earlier records; a major changes what
 earlier records mean.
 
+## 4.3.2 - 2026-10-13
+
+- Wake reads an identity probe the way check recorded it under the Codex sandbox (issue #70). Node gives a child's stdout and stderr as a socket pair, and under the Codex sandbox a Node program writing to that socket through `process.stdout` prints nothing and still exits 0. So a probe such as `npm --version` read as "" in wake, which Codex runs inside the sandbox, and as "11.3.0" in `sudus check`, which writes `.git` and so runs outside it. The identities never matched, and wake named `run REQ` after every passing check. A probe now writes into a pipe that `cat` copies out, and its exit status still decides. A probe's value is unchanged outside the sandbox, so existing receipts stay current. Mechanism commands run as before: `sudus check` cannot run inside the Codex sandbox, which keeps `.git` read-only.
+
 ## 4.3.1 - 2026-10-11
 
 - `sudus promote` adds the roadmap section a backlog item lacks (issue #68). Wake named `promote ITEM` for any backlog item, but an item captured with `sudus item --backlog` has no section in docs/spec/roadmap.md, and promote refused it with "no roadmap section ITEM". Promote now adds `## ITEM` with a `Requirements:` line naming the item's source requirement, which capture already checked is Agreed, and a line that says what it delivers with the item's body. A body naming an identifier the specification does not define would fail lint, so that section names the item instead; the body is in the promotion decision either way. The section is written in the promotion's one transaction with the `Current:` move, so recovery after a crash completes it with the rest. A section written beforehand is used as it is, so the agent can still name more requirements.

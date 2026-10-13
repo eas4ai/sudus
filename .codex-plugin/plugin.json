@@ -1,4 +1,4 @@
-{ "name": "sudus", "version": "4.3.1",
+{ "name": "sudus", "version": "4.3.2",
   "description": "The referee for agent-led software development: reads the repository, names the next action.",
   "author": { "name": "eas4ai" }, "license": "MIT",
   "keywords": ["agent", "specification", "requirements", "review", "hooks"], "skills": "./skills/",
