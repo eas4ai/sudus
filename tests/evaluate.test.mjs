@@ -1106,6 +1106,55 @@ describe('measure()', () => {
     assert.equal(log.at(-2).payload.request_digest, null, 'an oversize request is never recorded as sent');
     assert.equal(log.at(-1).payload.call, null);
   });
+  // Spec revision 20 (issue #69): a commitment's own requirements filled the request, so every
+  // measurement on it was unavailable oversize and decide --consequential could never run.
+  const LARGE_IDS = Array.from({ length: 23 }, (_, i) => `AUTH-${String(i + 1).padStart(3, '0')}`);
+  const largeCommitment = () => ({
+    'docs/spec/auth.md': 'Prefix: AUTH\n\n' + LARGE_IDS.map((id) => `[${id}] Tokens rotate on schedule ${id}. ${'The schedule holds under load and across restarts. '.repeat(45)}\nFalsifier: tokens for ${id} are not rotated on schedule.\nMechanism: rotate\nStatus: Agreed 2026-09-19\n`).join('\n'),
+    'docs/spec/roadmap.md': `Current: auth-tokens\n\n## auth-tokens\n\nRequirements: ${LARGE_IDS.join(', ')}\n`,
+  });
+  const sent = (bodies, requests) => async (request) => { requests.push(request); return { status: 200, body: bodies.shift(), model: 'jev-1.13.0' }; };
+  test('a request over the cap is sent with the text of only the requirements its concerns name, and the reason says so (issue #69)', async () => {
+    const cwd = await repoWithCommitment(true, 60, largeCommitment());
+    await mkdirAndWrite(cwd, 'src/auth/rotate.mjs', 'export const rotate = () => {};\n');
+    const requests = [];
+    const r = await measure(cwd, draft(), { transport: sent([goodBody()], requests) });
+    assert.equal(requests.length, 1);
+    const reqs = requests[0].state.contract.requirements;
+    assert.deepEqual(reqs.map((x) => x.id), LARGE_IDS);
+    assert.ok(reqs.every((x) => /^sha256:/.test(x.text_digest)));
+    assert.deepEqual(reqs.filter((x) => x.obligation !== null || x.falsifier !== null).map((x) => x.id), ['AUTH-003']);
+    assert.match(reqs.find((x) => x.id === 'AUTH-003').obligation, /^Tokens rotate on schedule AUTH-003\./);
+    assert.equal(sizeCheck(settings(), requests[0]), null);
+    assert.equal(r.outcome, 'composite');
+    assert.match(r.reason, /^composite \S+ <= 0\.35, confidences ok; sent with requirement text for AUTH-003 only \(the full request: the request is \d+ bytes, over its cap of 48000; the named paths' contents are \d+ bytes, the largest src\/auth\/rotate\.mjs at \d+\)$/);
+    const log = await readLog(cwd);
+    assert.equal(log.at(-1).payload.reason, r.reason);
+    assert.equal(log.at(-3).payload.request_digest, requestDigest(requests[0]), 'the intent fixes the digest of the request sent');
+    // The agent can now record the decision itself, as the working agreement's Consequential step says.
+    const { decideConsequential } = await import('../lib/escalate.mjs');
+    await assert.doesNotReject(decideConsequential(cwd, draft()));
+    const { readAdr } = await import('../lib/adr.mjs');
+    assert.equal((await readAdr(cwd)).at(-1).evaluation, r.measurementSha);
+  });
+  test('a request still over the cap with the concerns\' requirement text only is unavailable oversize and says so (issue #69)', async () => {
+    const cwd = await repoWithCommitment(true, 60, largeCommitment());
+    await mkdirAndWrite(cwd, 'src/auth/rotate.mjs', 'export const rotate = () => {};\n' + '// padding\n'.repeat(5000));
+    let called = false;
+    const r = await measure(cwd, draft(), { transport: async () => { called = true; } });
+    assert.equal(called, false);
+    assert.equal(r.outcome, 'unavailable');
+    assert.match(r.reason, /^unavailable oversize: the request is \d+ bytes, over its cap of 48000; the named paths' contents are \d+ bytes, the largest src\/auth\/rotate\.mjs at \d+; with requirement text for AUTH-003 only$/);
+    assert.equal((await readLog(cwd)).at(-2).payload.request_digest, null);
+  });
+  test('a request that fits carries every frozen requirement\'s text (issue #69)', async () => {
+    const cwd = await repoWithCommitment();
+    await mkdirAndWrite(cwd, 'src/auth/rotate.mjs', 'export const rotate = () => {};\n');
+    const requests = [];
+    const r = await measure(cwd, draft(), { transport: sent([goodBody()], requests) });
+    assert.deepEqual(requests[0].state.contract.requirements.map((x) => [x.id, x.obligation]), [['AUTH-003', 'Tokens rotate on a fixed schedule.']]);
+    assert.doesNotMatch(r.reason, /sent with/);
+  });
   // measure()'s own model-mismatch cross-check (res.model !== request.model): a defensive failure
   // class distinct from a transport-level failure or an invalid-answer parse, recorded as a real
   // evaluation-call (outcome: failure) the same way a transport failure is.

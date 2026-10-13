@@ -4,8 +4,23 @@ Prefix: SUDUS
 Scope: the Sudus 2 kernel: its records, verdicts, commands, skills and evaluator
 
 
-Status: Draft, revision 19, 2026-10-10. Nothing here is Agreed until the
+Status: Draft, revision 20, 2026-10-13. Nothing here is Agreed until the
 developer confirms it.
+
+Revision 20 lets a Consequential decision on a large commitment be measured
+(section 10, Limits and failure). The measurement state carries the text of
+every frozen requirement, so a commitment with many requirements filled the
+request by itself; every measurement on it was `unavailable oversize`, the
+agent could cut nothing, and every Consequential decision went to the
+developer (issue #69). A request over a limit is now built once more with
+the text of only the frozen requirements the draft's concerns name; the
+others keep their identifier and text digest. A request that fits is never
+trimmed, so earlier measurements and calibration are unchanged. The
+developer accepted this on 2026-10-13 ("ok: trim only when over"). The agent
+added, beyond that answer: the measurement's reason says the request was
+trimmed; a request still over a limit is `unavailable oversize` and its
+reason says it was already trimmed; and nothing is rebuilt when the concerns
+already name every frozen requirement.
 
 Revision 19 lets a fix revised after its resolution be recorded again
 (section 9, After the report). `sudus resolve` refused a finding already
@@ -1787,7 +1802,9 @@ recommendation, because, if_wrong, instead, options, named_paths,
 cited_decisions>`. The measurement state is `M(D) := <D's five narrative
 fields, every option's text with the recommended option and its code, C(c),
 A(D)>`, where `C(c)` is the start keystone, commitment and glossary, frozen
-requirements, and developer-written cited decisions (`by: developer`), and
+requirements (past a request limit, only those the concerns name keep their
+text; see Limits and failure), and developer-written cited decisions
+(`by: developer`), and
 `A(D)` is the closed JSON authority projection of validated IDs, enums,
 booleans and counts the old owner call used. Beyond `D`, `C(c)` and `A(D)`,
 no agent prose, code, paths, outputs, findings or agent-authored ADR bodies
@@ -1816,7 +1833,14 @@ may differ.
 
 `jev-1.13.0` permits 64k request tokens and 32k for state plus the longest
 question; the kernel enforces `request_cap_bytes`, estimates three bytes per
-token, and refuses above 75% of either limit before sending. The review
+token, and refuses above 75% of either limit before sending. A request over
+either limit is built once more with the text of only the frozen requirements
+the draft's concerns name; the others keep their identifier and text digest.
+When that request fits, it is sent, and the measurement's reason says so;
+when it does not, the draft is `unavailable oversize`. A request that fits
+is never trimmed. Added 2026-10-13 (revision 20, issue #69, on the
+developer's ok): previously a request over a limit was refused at once. The
+review
 source's request is the harness's own message; the no-policy-prose and
 named-field rules above still bind it, and Sudus does not separately cap its
 size beyond the state it sends.

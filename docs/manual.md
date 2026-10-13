@@ -1010,7 +1010,7 @@ bound to the loop. Until then wake names the repair.
 | `typesafeai.agent_ceiling` | `0.35` | The composite at or under which the suggestion is `agent`; above it, `developer`. |
 | `typesafeai.confidence_floors` | 0 each | Per-dimension minimum confidence for an `agent` suggestion. |
 | `typesafeai.min_calibration_agent_predictions` | `60` | Labelled `suggested: agent` cases `sudus calibrate` needs before it reports a pass or fail. |
-| `typesafeai.request_cap_bytes` | `48000` | The largest request the evaluator sends; a draft over it is recorded `unavailable oversize` and goes to you. |
+| `typesafeai.request_cap_bytes` | `48000` | The largest request the evaluator sends. A request over it is built again with the text of only the requirements the draft's concerns name; when that still does not fit, the draft is recorded `unavailable oversize` and goes to you. |
 
 The defaults for the ceiling, weights and floors are the ones the in-tree
 benchmark (`tests/bench`) scored 22 of 24 with. Change them and rerun it.
@@ -1188,7 +1188,7 @@ prints one with its references resolved.
 | `realize <decision-id> --subject <text>` | Record that a Consequential decision was built. |
 | `escalate [--consequential] --commitment <s> --concern <token>... --question <q> --recommendation <r> --because <b> --if-wrong <w> --instead <i> [--option <t>...] [--path <file>...] [--decision <id>...]` | Raise a decision; without `--consequential`, a Blocking one (the agent stops). With `--consequential`, the Consequential draft's own measurement forced it here, or the agent chose to. |
 | `calibrate` | Report how many labelled, suggested-agent measurements exist and how many were wrong, against the fixed bound; tunes the composite, never gates it. |
-| `measure [--brief] [--harness <name>] --commitment <s> --concern <token>... --question <q> --recommendation <r> --because <b> --if-wrong <w> --instead <i> --option <t>... [--path <file>...] [--decision <id>...]` \| `measure <slug> --file <path>` | Take one measurement of a Consequential draft before `decide` or `escalate`; `--brief` prints a launch block for the review source, `--file` completes it. Refused when no commitment is open, before any record of the draft is written. |
+| `measure [--brief] [--harness <name>] --commitment <s> --concern <token>... --question <q> --recommendation <r> --because <b> --if-wrong <w> --instead <i> --option <t>... [--path <file>...] [--decision <id>...]` \| `measure <slug> --file <path>` | Take one measurement of a Consequential draft before `decide` or `escalate`; `--brief` prints a launch block for the review source, `--file` completes it. Refused when no commitment is open, before any record of the draft is written. A jev request over the size cap is sent with the text of only the requirements the concerns name, and the reason says so. |
 | `answer <slug> ok\|instead\|ask --quote <words> [--escalation <sha>]` | The developer's answer to an escalation, in their own words. |
 | `reply <slug> <text> [--escalation <sha>]` | The agent's explanation after a developer `ask`. |
 | `review <slug> --file <path>` | Record the builder's review. |
