@@ -7,6 +7,13 @@ or document meaning; a minor adds or revises requirements, verdicts, or
 record shapes and still reads earlier records; a major changes what
 earlier records mean.
 
+## 4.5.0 - 2026-10-15
+
+Spec revision 21, on the developer's ok of 2026-10-15. Earlier logs still read. A backlog item that takes over a decision has a new optional `decision` field, so a log holding one needs Sudus 4.5.0 or later.
+
+- A superseded commitment's unbuilt decision no longer holds its successor (issue #71). A Consequential decision recorded under a commitment the developer superseded held the successor's `build` and Done, although its work belongs to the commitment set aside and the successor cannot realize it truthfully. Such a decision now carries. When the successor's requirements include one the decision rests on, the successor builds it as before. Otherwise wake names `backlog DECISION` before `done`, and `sudus item --backlog --decision ID` moves it to the backlog, with the slug, source requirement and body taken from the decision unless given. The item is promoted after Done like any backlog item. The supersession's own decision still holds the successor.
+- A measured decision's `rests_on` also names the requirements among its draft's concerns, so a supersession carries it by requirement too. A measured decision recorded earlier names no requirement, so it moves to the backlog, sourced from the commitment it was recorded under.
+
 ## 4.4.0 - 2026-10-13
 
 Spec revision 20, on the developer's ok of 2026-10-13. No record shape changes; earlier logs still read, and a request that fits is built as before, so earlier measurements and calibration are unchanged.
