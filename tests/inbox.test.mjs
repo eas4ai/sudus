@@ -92,3 +92,17 @@ test('fold leaves an item in conflict with the log in its inbox and folds the sa
   // A conflict does not hold wake on fold.
   assert.notEqual((await wake(r.cwd)).action, 'fold');
 });
+
+// Review of 57c1366c (issue #71): an inbox item that names a decision is a different item from one
+// that does not, and fold keeps the decision it names.
+test('fold keeps the decision an inbox item names, and the decision tells two items apart (issue #71)', async () => {
+  const { inboxState } = await import('../lib/inbox.mjs');
+  const r = await loopRepo();
+  const moved = { kind: 'backlog', slug: 'cache', source: 'DEMO-001', body: 'Cache the greeting.', decision: '01K00000000000000000000000' };
+  const plain = { kind: 'backlog', slug: 'cache', source: 'DEMO-001', body: 'Cache the greeting.' };
+  assert.equal(inboxState([{ sha: 'a', kind: 'item', payload: plain }], [{ sha: 'b', kind: 'item', payload: moved }])[0].state, 'conflict');
+  await appendRecord(r.cwd, 'item', 'cache', moved, `refs/sudus/inbox/${OTHER}`);
+  await r.add('done', 'first', { slug: 'first', snapshot: await r.snap() });
+  await fold(r.cwd);
+  assert.deepEqual((await r.log()).find((x) => x.kind === 'item' && x.payload.slug === 'cache').payload, moved);
+});

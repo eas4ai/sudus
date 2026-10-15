@@ -31,7 +31,9 @@ body default from the decision, the source being the first Agreed
 requirement it rests on, else the first Agreed requirement of the
 commitment it was recorded under, one outside the open set first; and the
 move is refused for a decision the open commitment holds, while no
-commitment is open, and from a clone that does not hold the commitment.
+commitment is open, and from a clone that does not hold the commitment; and
+only the first item written where the move is allowed takes the decision
+over.
 
 Revision 20 lets a Consequential decision on a large commitment be measured
 (section 10, Limits and failure). The measurement state carries the text of
@@ -717,7 +719,9 @@ items. A Consequential decision with no realized line whose ADR line precedes
 the supersession's own decision carries too: it holds `build` and Done only
 for a commitment whose set names a requirement in its `rests_on`. In any
 other open commitment it moves to the backlog: a backlog item names it, and
-the item self-promotes after Done like any other. The supersession's own
+the item self-promotes after Done like any other. Only the first item written
+while a commitment that rests on none of its requirements is open takes it
+over; any other item naming it closes nothing. The supersession's own
 decision holds the successor. (Revised 2026-10-15, revision 21: such a
 decision held every later commitment, issue #71.) While no successor start exists, wake names the pending transition and
 the existing-project skill resumes it.

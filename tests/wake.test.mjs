@@ -821,6 +821,29 @@ test('a decision recorded under the successor holds it, whatever requirement it 
   await assert.rejects(moveDecision(r.cwd, mine), new RegExp(`decision ${mine} was recorded under second; build it`));
   await assert.rejects(moveDecision(r.cwd, id), /already realized, superseded or in the backlog/);
 });
+// Review of 57c1366c: an item names a decision it may not take over, written by item() directly or
+// by hand. It closes nothing: the commitment still builds its own decision and a held carried one,
+// and a second item for a moved decision is only a backlog item. Two moves at once take it once.
+test('an item closes only a decision sudus item --decision could move, and two moves at once take it over once (issue #71)', async () => {
+  const { item, moveDecision } = await import('../lib/commitment.mjs');
+  const { r, id, realizeSup } = await supersededWithDecision(['DEMO-001', 'DEMO-002']);
+  await realizeSup();
+  await item(r.cwd, { kind: 'backlog', slug: 'skip-held', source: 'DEMO-001', body: 'Skip the held decision.', decision: id });
+  const build = predicates.find((p) => p.name === 'build');
+  assert.equal((await build.test(await readState(r.cwd)))?.target, id);
+  const mine = await restsOn(r, 'DEMO-002', 'Greet in one place');
+  await r.commit('record a decision under second');
+  await item(r.cwd, { kind: 'backlog', slug: 'skip-own', source: 'DEMO-002', body: 'Skip my own decision.', decision: mine });
+  const ids = (await import('../lib/adr.mjs')).unbuiltDecisions;
+  const st = await readState(r.cwd);
+  assert.deepEqual(ids(st.adr, st.log, st.set).map((u) => u.line.id), [id, mine]);
+  assert.ok((await doneRule(st)).failed.includes('obligations'));
+  const other = await supersededWithDecision(['DEMO-002']);
+  await other.realizeSup();
+  const tries = await Promise.allSettled([moveDecision(other.r.cwd, other.id, { slug: 'one' }), moveDecision(other.r.cwd, other.id, { slug: 'two' })]);
+  assert.deepEqual(tries.map((t) => t.status).sort(), ['fulfilled', 'rejected']);
+  assert.equal((await other.r.log()).filter((x) => x.kind === 'item' && x.payload.decision === other.id).length, 1);
+});
 // A measured decision recorded before 4.5.0 rests only on the agent's reason text. It names no
 // requirement, so it holds no later commitment, and its item takes the first Agreed requirement of
 // the commitment it was recorded under, one outside the open set when there is one.
