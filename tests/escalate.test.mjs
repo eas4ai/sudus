@@ -614,6 +614,8 @@ describe('decideConsequential requires a measurement', () => {
     const id = await decideConsequential(cwd, mdraft());
     const line = (await readAdr(cwd)).findLast((l) => l.kind === 'decision');
     assert.equal(line.id, id); assert.equal(line.evaluation, r.measurementSha); assert.equal(line.by, 'agent');
+    // Issue #71: the requirement among its concerns, so a supersession carries it by requirement.
+    assert.deepEqual(line.rests_on, [mdraft().because, 'AUTH-003']);
   });
   test('refuses a floor-outcome or vetoed measurement: decide is not the floor-caught path', async () => {
     const cwd = await repoWithCommitment();

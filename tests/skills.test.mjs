@@ -126,7 +126,7 @@ test("new-project names the four gates in order", () => {
 test("the AGENTS.md template states a move for every verdict and action", () => {
   const t = AGENTS_TEMPLATE();
   for (const v of ["Resolvable", "Waiting", "Done"]) assert.ok(new RegExp("^- " + v + ":", "m").test(t), v);
-  for (const a of ["repair PATH", "recover TRANSACTION", "reconcile ACTION", "scope PATH", "fix ITEM", "record PATH", "commit PATH", "declare REQ", "run REQ", "implement REQ", "escalate REQ", "review mechanism REQ", "capture ITEM", "review SLUG", "report SLUG", "resolve SLUG N", "build DECISION", "done SLUG", "promote", "reply SLUG"]) assert.ok(t.includes("`" + a + "`"), a);
+  for (const a of ["repair PATH", "recover TRANSACTION", "reconcile ACTION", "scope PATH", "fix ITEM", "record PATH", "commit PATH", "declare REQ", "run REQ", "implement REQ", "escalate REQ", "review mechanism REQ", "capture ITEM", "review SLUG", "report SLUG", "resolve SLUG N", "build DECISION", "backlog DECISION", "done SLUG", "promote", "reply SLUG"]) assert.ok(t.includes("`" + a + "`"), a);
   assert.ok(t.includes("`sudus push`"));
   // Sudus 4.0.0: the adversary reports once; the builder resolves or declines every finding.
   assert.ok(t.includes("`sudus decline SLUG N \"<why>\"`") && t.includes("It prints the review report"));

@@ -106,7 +106,7 @@ test('a pending supersession and an interrupted transaction are not verdicts', a
 });
 
 test('the precedence order is the one section 5 states', () => {
-  assert.deepEqual(ORDER, ['repair', 'recover', 'reconcile', 'scope', 'waiting', 'supersede', 'fix', 'record', 'declare', 'run', 'review mechanism', 'capture', 'review', 'report', 'resolve', 'build', 'done', 'fold', 'promote']);
+  assert.deepEqual(ORDER, ['repair', 'recover', 'reconcile', 'scope', 'waiting', 'supersede', 'fix', 'record', 'declare', 'run', 'review mechanism', 'capture', 'review', 'report', 'resolve', 'build', 'backlog', 'done', 'fold', 'promote']);
 });
 
 async function treeHash(dir) {
@@ -753,6 +753,87 @@ test('an unrealized Consequential decision is build until a realized line names 
   await appendDecision(r.cwd, { kind: 'realized', of: id, base_snap: r.startSnapshot, snap: await r.snap(), subject: 'map in place', interfaces: [] }, { command: 'realize' });
   await r.commit('realized');
   assert.notEqual((await wake(r.cwd)).action, 'build');
+});
+
+// Issue #71 (spec revision 21): a decision recorded under first and resting on DEMO-001 is unbuilt
+// when the developer supersedes first with second. It carries: it holds second's build and Done
+// only when second's set names DEMO-001, and otherwise wake names moving it to the backlog. The
+// supersession's own decision holds second as before.
+const restsOn = (r, req, title, rests_on = [req]) => appendDecision(r.cwd, { kind: 'decision', level: 'Consequential', by: 'agent', title, rests_on, wrong_if: 'the greeting changes per call', body: 'Keep the greeting in memory.', base_snap: r.startSnapshot, evaluation: null, interfaces: [] }, { command: 'decide' });
+async function supersededWithDecision(successorReqs, rests_on = ['DEMO-001']) {
+  const { realize } = await import('../lib/commitment.mjs');
+  const { readAdr } = await import('../lib/adr.mjs');
+  const r = await loopRepo({ reqs: ['DEMO-001', 'DEMO-002'] });
+  const id = await restsOn(r, 'DEMO-001', 'Cache the greeting', rests_on);
+  await r.commit('record decision');
+  const roadmap = await readFile(join(r.cwd, 'docs/spec/roadmap.md'), 'utf8');
+  await r.write('docs/spec/roadmap.md', roadmap + `\n## second\n\nRequirements: ${successorReqs.join(' ')}\n\nThe second greeting.\n`); await r.commit('second section');
+  await supersede(r.cwd, 'second', { quote: 'do second first', env: {} });
+  await authorize(r.cwd, { quote: 'ok', env: {} });
+  await start(r.cwd, 'second');
+  const sup = (await readAdr(r.cwd)).find((l) => l.kind === 'decision' && l.title === 'Supersede first with second').id;
+  for (const q of successorReqs) await r.passReq(q);
+  await r.review(); await r.report();
+  const realizeSup = async () => { await realize(r.cwd, sup, { subject: 'second started' }); await r.commit('realized the supersession'); };
+  return { r, id, sup, realizeSup };
+}
+test('an unbuilt decision of a superseded commitment moves to the backlog instead of holding a successor that does not name its requirement (issue #71)', async () => {
+  const { moveDecision } = await import('../lib/commitment.mjs');
+  const { r, id, sup, realizeSup } = await supersededWithDecision(['DEMO-002']);
+  let v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['build', sup], JSON.stringify(v));
+  await realizeSup();
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['backlog', id], JSON.stringify(v));
+  assert.equal(v.reason, `decision ${id} (Cache the greeting) was recorded under first, which a supersession set aside, and second rests on no requirement it names; sudus item --backlog --decision ${id} moves it to the backlog`);
+  assert.ok((await doneRule(await readState(r.cwd))).failed.includes('obligations'));
+  const sha = await moveDecision(r.cwd, id);
+  const it = (await r.log()).find((x) => x.sha === sha);
+  assert.deepEqual(it.payload, { kind: 'backlog', slug: `decision-${id.toLowerCase()}`, source: 'DEMO-001', body: 'Cache the greeting. Keep the greeting in memory.', decision: id });
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['done', 'second'], JSON.stringify(v));
+  assert.deepEqual(await doneRule(await readState(r.cwd)), { holds: true, failed: [] });
+  // After Done the item is a backlog item like any other: wake names its promotion.
+  const { done } = await import('../lib/commitment.mjs');
+  await done(r.cwd, 'second');
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['promote', `decision-${id.toLowerCase()}`], JSON.stringify(v));
+});
+test('a carried unbuilt decision holds a successor whose set names the requirement it rests on, and cannot move to the backlog (issue #71)', async () => {
+  const { moveDecision } = await import('../lib/commitment.mjs');
+  const { r, id, realizeSup } = await supersededWithDecision(['DEMO-001', 'DEMO-002']);
+  await realizeSup();
+  const v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['build', id], JSON.stringify(v));
+  assert.ok((await doneRule(await readState(r.cwd))).failed.includes('obligations'));
+  await assert.rejects(moveDecision(r.cwd, id), new RegExp(`second rests on a requirement decision ${id} names; build it`));
+});
+test('a decision recorded under the successor holds it, whatever requirement it rests on, and cannot move to the backlog (issue #71)', async () => {
+  const { moveDecision } = await import('../lib/commitment.mjs');
+  const { r, id, realizeSup } = await supersededWithDecision(['DEMO-002']);
+  await realizeSup();
+  await moveDecision(r.cwd, id);
+  const mine = await restsOn(r, 'DEMO-001', 'Greet in one place');
+  await r.commit('record a decision under second');
+  const v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['build', mine], JSON.stringify(v));
+  assert.ok((await doneRule(await readState(r.cwd))).failed.includes('obligations'));
+  await assert.rejects(moveDecision(r.cwd, mine), new RegExp(`decision ${mine} was recorded under second; build it`));
+  await assert.rejects(moveDecision(r.cwd, id), /already realized, superseded or in the backlog/);
+});
+// A measured decision recorded before 4.5.0 rests only on the agent's reason text. It names no
+// requirement, so it holds no later commitment, and its item takes the first Agreed requirement of
+// the commitment it was recorded under, one outside the open set when there is one.
+test('a carried decision that names no requirement moves to the backlog from the commitment it was recorded under (issue #71)', async () => {
+  const { r, id, realizeSup } = await supersededWithDecision(['DEMO-002'], ['the spec names no cache']);
+  await realizeSup();
+  let v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['backlog', id], JSON.stringify(v));
+  const out = spawnSync(process.execPath, [join(process.cwd(), 'bin/sudus.mjs'), 'item', '--backlog', '--decision', id], { cwd: r.cwd, encoding: 'utf8', env: Object.fromEntries(Object.entries(process.env).filter(([k]) => !['CLAUDECODE', 'CODEX_HOME', 'MUSE_SESSION', 'TYPESAFEAI_API_KEY'].includes(k))) });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, new RegExp(`^item [0-9a-f]{40} decision-${id.toLowerCase()} takes over decision ${id} from DEMO-001\n$`));
+  v = await wake(r.cwd);
+  assert.deepEqual([v.action, v.target], ['done', 'second'], JSON.stringify(v));
 });
 
 // Fix round 1, item 5: doneRule's bullet 4 used to select every non-'decision' ADR line (a 'read'

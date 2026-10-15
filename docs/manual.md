@@ -587,6 +587,19 @@ move `sudus migrate` made from `.cairn/` to `.sudus/` is not the
 decision's change, even when the decision's starting snapshot predates it;
 a moved file changed after the move is judged as the path it is now.
 
+A decision recorded before a supersession and not yet built carries to
+later commitments. When the successor's requirements include one the
+decision rests on, the successor builds it. Otherwise wake names
+`backlog <decision>`, and the agent moves it to the backlog:
+
+```sh
+sudus item --backlog --decision <decision-id>
+```
+
+The item's slug, source requirement and body come from the decision unless
+you give them. It is promoted after Done like any backlog item. The
+supersession's own decision is built by the successor.
+
 An escalation may also name a finding, when the agent chooses to ask you
 about one: `--concern finding:<record sha>#<n>`, one per finding. Your `ok`
 closes each finding it names, and wake lists them after "ok closes:".
@@ -1145,7 +1158,8 @@ specific than the action word alone.
 | `review SLUG` | Write and record the review, answering all six questions. |
 | `report SLUG` | `sudus brief`, start one fresh read-only subagent with none of your context, then `sudus report --file`. Once per commitment, and again only after a report that stopped on a Sudus bug. |
 | `resolve SLUG N` | An open finding is the agent's to decide: fix it and `sudus resolve`, or `sudus decline` it with its reason. |
-| `build DECISION` | Build what the decision says, commit, then `sudus realize`. |
+| `build DECISION` | Build what the decision says, commit, then `sudus realize`. A decision carried past a supersession is named only by a commitment whose requirements include one it rests on. |
+| `backlog DECISION` | A decision recorded before a supersession, which this commitment rests on nowhere: `sudus item --backlog --decision <id>` moves it to the backlog. |
 | `done SLUG` | Every condition holds: `sudus done SLUG`. |
 | `fold ITEM` | No commitment is open and an inbox holds an item another clone captured while the commitment was open: `sudus fold` appends every such item to the log. |
 | `promote` | No commitment is open and the backlog holds an item. Choose one; `sudus promote ITEM` (slug or sha). When the roadmap has no section for the item, promote adds one: it names the item's source requirement and says what it delivers with the item's body. Write the section first to name more requirements. It refuses while any defect is unfixed, and while `Current:` names a section that is neither the finished commitment nor the item. An item other work already delivered is retired instead: `sudus escalate --commitment <finished slug> --concern retire:<item sha> ...`, and the developer's `ok` takes it out of the backlog. To rank a new feature above the waiting items, the agent escalates with `--concern wait:<item sha>` per item; your `ok` lets wake say Done while they wait, `sudus show items` marks them, and after the next Done wake names them again. |
@@ -1178,6 +1192,7 @@ prints one with its references resolved.
 | `supersede <successor> --quote <text>` | Close the open commitment without Done, quoting the developer's ruling, and name the intended successor slug. |
 | `promote <item-sha>` | After Done, with the backlog holding this item, open it as the next commitment. |
 | `item --backlog\|--defect --slug <s> --from <REQ> --body <text>` | Capture an idea or a defect against an Agreed requirement. |
+| `item --backlog --decision <id> [--slug <s>] [--from <REQ>] [--body <text>]` | Move a decision a supersession carried, which the open commitment rests on nowhere, to the backlog. |
 | `item --next-feature --slug <s> --from <REQ or contract> --body <text>` | Capture a change to Agreed text or a contract path; it waits for the developer. |
 | `outside <item-sha> --reason <text>` | Record that a captured item is not this commitment's work. |
 | `fold` | After Done, append every inbox item this clone holds, its own and those fetched, to the log as an ordinary item; an item whose slug the log holds with a different item is reported and left in its inbox. |

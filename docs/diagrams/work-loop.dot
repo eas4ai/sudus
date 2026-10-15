@@ -43,6 +43,7 @@ digraph work_loop {
       <TR><TD ALIGN="LEFT">report SLUG</TD><TD ALIGN="LEFT">a report at the reviewed snapshot through the latest brief; every lens, decision and interface attempted; a report stopped on a Sudus bug is not one</TD></TR>
       <TR><TD ALIGN="LEFT">resolve SLUG N</TD><TD ALIGN="LEFT">a resolution, or a decline with its reason, names N on its exact source record</TD></TR>
       <TR><TD ALIGN="LEFT">build DECISION</TD><TD ALIGN="LEFT">realized line names base and result snapshots; actual delta passes protected-category check</TD></TR>
+      <TR><TD ALIGN="LEFT">backlog DECISION</TD><TD ALIGN="LEFT">a backlog item names the decision a supersession carried and the commitment rests on nowhere</TD></TR>
       <TR><TD ALIGN="LEFT">done SLUG</TD><TD ALIGN="LEFT">Done rule holds; sudus done writes the final record</TD></TR>
       <TR><TD ALIGN="LEFT">fold ITEM</TD><TD ALIGN="LEFT">no commitment is open; every inbox item this clone holds is on the log, or another item holds its slug</TD></TR>
       <TR><TD ALIGN="LEFT">promote</TD><TD ALIGN="LEFT">one backlog item, decision, roadmap move and successor start are one transaction</TD></TR>

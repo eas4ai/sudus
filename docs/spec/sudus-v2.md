@@ -4,8 +4,34 @@ Prefix: SUDUS
 Scope: the Sudus 2 kernel: its records, verdicts, commands, skills and evaluator
 
 
-Status: Draft, revision 20, 2026-10-13. Nothing here is Agreed until the
+Status: Draft, revision 21, 2026-10-15. Nothing here is Agreed until the
 developer confirms it.
+
+Revision 21 lets a successor reach Done past an unbuilt decision of the
+commitment it superseded (section 2, Superseded and ADR; section 5, Done). A
+Consequential decision recorded under the superseded commitment held the
+successor's `build` and Done, although its work belongs to the commitment
+set aside and the successor cannot realize it truthfully (issue #71). Such a
+decision now carries: it holds `build` and Done only for a commitment whose
+set names a requirement it rests on. Otherwise wake names `backlog DECISION`
+before `done`, and `sudus item --backlog --decision ID` moves it to the
+backlog, where it self-promotes after Done like any backlog item. The
+supersession's own decision still holds the successor, and the superseded
+record keeps its shape. A measured decision's `rests_on` now also names the
+requirements among its draft's concerns, so it carries the same way. The
+developer accepted this on 2026-10-15: "ok: carry by requirement", then, for
+a carried decision that holds no commitment, "It should be moved to
+backlog". The `rests_on` change was the agent's addition, named in the
+question. The agent added, beyond those answers: "recorded before the
+supersession" means the decision's ADR line precedes the supersession's own
+decision line; a supersession whose decision line is missing carries no
+decision; the action is named `backlog` and comes after `build`; the item
+names the decision in a new optional `decision` field; its slug, source and
+body default from the decision, the source being the first Agreed
+requirement it rests on, else the first Agreed requirement of the
+commitment it was recorded under, one outside the open set first; and the
+move is refused for a decision the open commitment holds, while no
+commitment is open, and from a clone that does not hold the commitment.
 
 Revision 20 lets a Consequential decision on a large commitment be measured
 (section 10, Limits and failure). The measurement state carries the text of
@@ -687,7 +713,13 @@ ID, the intended successor slug and every carried open record. It does not name
 a future start. The successor start later references the superseded record.
 Unanswered escalations, unresolved findings and unfixed defect items carry;
 receipts remain usable only by their ordinary identity; other items remain
-items. While no successor start exists, wake names the pending transition and
+items. A Consequential decision with no realized line whose ADR line precedes
+the supersession's own decision carries too: it holds `build` and Done only
+for a commitment whose set names a requirement in its `rests_on`. In any
+other open commitment it moves to the backlog: a backlog item names it, and
+the item self-promotes after Done like any other. The supersession's own
+decision holds the successor. (Revised 2026-10-15, revision 21: such a
+decision held every later commitment, issue #71.) While no successor start exists, wake names the pending transition and
 the existing-project skill resumes it.
 
 **Range.** The log after a start through its head or closing record. A receipt
@@ -705,7 +737,10 @@ realize`, `sudus supersede`, or `sudus promote`. Kinds are `decision`,
 `realized`, `superseded`, `answered` and `read`.
 A decision carries `by`, `rests_on`, `wrong_if`, `body`, the workspace
 snapshot from which realization will be measured, and the measurement it
-read, or `null` when the narrow floor routed it without one. A realized line
+read, or `null` when the narrow floor routed it without one. A measured
+decision's `rests_on` is its draft's `because` and then each requirement among
+the draft's concerns. (Revised 2026-10-15, revision 21: it was the `because`
+alone, so a carried decision named no requirement, issue #71.) A realized line
 names that base and the realized workspace snapshot. A read line names the
 read record on the log, which carries the developer's authentication as an
 answer record does.
@@ -980,7 +1015,7 @@ The table names logical payload fields. `<ws>` is a workspace snapshot SHA,
 | `evaluation-call` | intent SHA, source `jev|review`, request digest, `response|failure|indeterminate`, resolved model, transport and session (review source only), raw response bytes or failure class, parsed answers when valid, reported usage | measurement and audit |
 | `measurement` | intent SHA, nullable call SHA, draft digest, source `jev|review`, resolved model, the five Score levels with their confidences, composite, veto or null, `suggested: agent|developer` or null, outcome `floor|unavailable|veto|composite|indeterminate`, reason | escalation, decision, calibration |
 | `calibration` | policy digest, labelled-through log head, predicted-agent count, false-downgrade count, one-sided confidence bound, criterion, `pass|fail` | policy validation over labelled measurements |
-| `item` | `backlog|next-feature|defect`, slug, source requirement or changed contract, body | capture, Done and next-feature |
+| `item` | `backlog|next-feature|defect`, slug, source requirement or changed contract, body; a backlog item that takes over a carried decision also names its decision ID (revision 21) | capture, Done and next-feature |
 | `outside` | item SHA, reason, optional evaluation SHA | capture gate |
 | `retirement` | item SHAs, developer-auth evidence | promotion, Done and next-feature |
 | `promotion` | item SHA, decision ID, intent SHA or null, results | after Done |
@@ -1133,6 +1168,7 @@ predicate. The table is normative.
 | `report SLUG` | a report names the reviewed snapshot through the latest brief and attempts every lens for every target and every interface obligation; a report that stopped on a Sudus bug is not one |
 | `resolve SLUG N` | a resolution, or a decline with its reason, names finding N of its exact source record |
 | `build DECISION` | a realized ADR line names the decision's base and resulting snapshots and the realization check passed |
+| `backlog DECISION` | a backlog item names the decision; a decision a supersession carried holds Done until it does, unless the open commitment rests on a requirement it names (added 2026-10-15, revision 21) |
 | `done SLUG` | a done record names the commitment and final workspace snapshot |
 | `fold ITEM` | no commitment is open; every inbox item this clone holds is on the log, or its slug is held by a different item (added 2026-09-26, revision 18) |
 | `promote` | no commitment is open; one promotion names a backlog item and decision; `Current:` and a one-item successor start were written transactionally |
@@ -1185,7 +1221,9 @@ open commitment (`supersede`); unfixed defect (`fix`); uncovered dirty input (`r
 `implement`, or `escalate` after three attempts); stale mechanism review
 (`review mechanism`); uncaptured item from the commitment (`capture`); missing
 current review (`review`); missing report (`report`); a finding neither
-resolved nor declined (`resolve`); unrealized Consequential decision (`build`); Done
+resolved nor declined (`resolve`); unrealized Consequential decision that
+holds the commitment (`build`); carried decision the commitment rests on
+nowhere and no backlog item names (`backlog`); Done
 rule satisfied without a done record (`done`); closed range with an inbox
 item not yet on the log (`fold`); closed range with a backlog item that
 neither retired nor waits (`promote`); Done.
@@ -1212,7 +1250,11 @@ Done requires all of the following:
   snapshot and accept every resolution.)
 - No escalation is unanswered, scope breach undisposed, defect unfixed,
   transaction incomplete, action lease stale, Consequential decision
-  unrealized, or administrative-cycle escalation unresolved.
+  unrealized, or administrative-cycle escalation unresolved. A decision a
+  supersession carried is realized when the start record's frozen set names
+  a requirement it rests on, and is otherwise moved to the backlog
+  (Superseded, section 2). (Revised 2026-10-15, revision 21: every carried
+  decision had to be realized, issue #71.)
 
 Backlog items are not in the rule. When the rule holds, wake names `done`;
 `sudus done` writes the record. The next wake renders the queue or names one

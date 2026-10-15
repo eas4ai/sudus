@@ -134,6 +134,7 @@ const NEXT: Record<string, (target: string) => string> = {
   resolve: t => `fixing ${finding(t)}`,
   accept: t => `independent check of the fixes on ${t}`,
   build: () => 'carrying out a recorded decision',
+  backlog: () => 'moving a set-aside decision to the backlog',
   done: t => `closing ${t}`,
   fold: t => `bringing in ${t}, captured on another clone`,
   promote: t => `starting the next commitment, ${t}`,
